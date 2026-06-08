@@ -1,8 +1,4 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- */
+import {SafeRoadTraffic} from "./contract";
+export {SafeRoadTraffic} from "./contract";
 
-import {type Contract} from 'fabric-contract-api';
-import {AssetTransferContract} from './assetTransfer';
-
-export const contracts: typeof Contract[] = [AssetTransferContract];
+export const contracts: any[] = [SafeRoadTraffic];

@@ -1,5 +1,7 @@
 # Блокчейн Конкурсное задание 2025. Hyperledger-Fabric
 
+Сначала нужно прочитать репозиторий, потом приступить к работе 
+
 ## Установка зависимостей (на интернете)
 
 ### Докер
@@ -11,7 +13,7 @@ curl -fsSL https://get.docker.com | sh
 sudo service docker start
 ```
 
-Чтобы понять что докер запущен просто достаточно того что он не выдал ошибку "Cannot connect to the Docker daemon", все остальное - запущен
+Чтобы понять что докер запущен нужно написать `docker ps` просто достаточно того что он не выдал ошибку "Cannot connect to the Docker daemon", все остальное - запущен
 
 ### Hyperledger-Fabric
 
@@ -226,6 +228,189 @@ checkCommitReadiness 2 "\"Bank\": true" "\"User\": true"   #-
 
 При исправлении каких-либо ошибок и тд нужно удалить все старые запуски так как это все сохраняется даже после выхода из программы.
 Делается это с помощью `./network.sh down` и только потом заново нужно писать команды выше ^
+
+## Контракт
+
+Перед началом написания контаркта сначала нужно понять что деплой НА ЧЕМПИОНАТЕ ЗАПУСКАЕТСЯ через папку deployCCAAS, тк она работает таким образом что 
+разработчик сам запускает докер контейнер вручную без использования Peer-узла - он использует интернет, а вот CCAAS он не нужен
+
+Так что для этого нам нужно сделать изменения для папки `chaincode-typescript`, в которой мы пишем контракт. 
+В папке `typescript.json` нужно чтобы было **"strict": false**, если там есть такие параметры как verbatimModuleSyntax и exactOptionalPropertyTypes их тоже меняем на false
+
+Далее создаем файл *contract.ts* в папке src и если нету файла *index.ts* тоже его создаем, а если он есть то все удаляем, позже его заполним
+
+* https://hyperledger-fabric.readthedocs.io/ru/latest/smartcontract/smartcontract.html
+
+Любой контракт на typescript использует методы объекта ctx.stub как.
+По этому пути находятся основные методы: fabric-samples\chaincode\node_modules\fabric-shim-api\types\index.d.ts
+
+В функции init обычно инициализируются начальные данные из задания.
+
+Теперь нужно оформить докерфайл в папке **chaincode-typescript** Это очень важно, и без этого деплой не будет работать 
+
+**версию лучше поменять на 22*
+
+```dockerfile
+#Было:
+COPY --chown=node:node package*.json ./
+RUN npm i
+COPY --chown=node:node . /usr/src/app
+ENV npm_config_cache=/usr/src/app
+RUN npm run package
+
+#Стало:
+COPY --chown=node:node package*.json ./
+RUN npm install
+COPY --chown=node:node . /usr/src/app
+ENV npm_config_cache=/usr/src/app
+RUN npm run build
+```
+
+```dockerfile
+#Этот блок полностью удаляем:
+
+# Setup tini to work better handle signals
+ENV TINI_VERSION v0.19.0
+ENV PLATFORM=amd64
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${PLATFORM} /tini
+RUN chmod +x /tini
+```
+
+```dockerfile
+#Было:
+RUN npm ci --omit=dev && npm cache clean --force
+#Стало:
+COPY --chown=node:node --from=builder /usr/src/app/node_modules ./node_modules
+```
+
+```dockerfile
+#Было:
+ENTRYPOINT [ "/tini", "--", "/usr/src/app/docker-entrypoint.sh" ]
+#Стало:
+ENTRYPOINT [ "/usr/src/app/docker-entrypoint.sh" ]
+```
+
+Заполнять index.ts нужно так:
+```typescript
+import {SafeRoadTraffic} from "./contract";
+export {SafeRoadTraffic} from "./contract";
+
+export const contracts: any[] = [SafeRoadTraffic];
+```
+где SafeRoadTraffic - название контракта
+
+Тут в package.json: 
+```
+"scripts": {
+    "lint": "eslint src",
+    "pretest": "npm run lint",
+    "test": "",
+    "start": "fabric-chaincode-node start",     +
+    "build": "tsc",                             +
+```
+
+## Бэкэнд
+
+В созданной нами папке fabric-samples/app-js создаем файл app.js и папку utils в которую копируем 2 файла по пути `fabric-samples/test-application/javascript`.
+Далее в package.json меняем строки:
+```json
+"scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+```
+
+На:
+```json
+"scripts": {
+    "start": "node ./app.js",
+},
+```
+
+Далее в app.js пишем ЗАУЧЕННЫЙ код!:
+```javascript
+const {Gateway, Wallets} = require('fabric-network');
+const path = require('path');
+const {buildCAClient,enrollAdmin,registerAndEnrollUser} = require ("./utils/CAUtil");
+const {buildCCPOrg2,buildWallet} = require("./utils/AppUtil");
+const express = require("express");
+
+const channelName = "blockchain2025";
+const chaincodeName = "blockchain";
+const mspOrg2 = 'User';
+const walletPath = path.join(__dirname,"wallet");
+const org2UserID = 'Admin';
+let contract;
+
+const app = express();
+
+app.use(express.json())
+
+app.use((req,res,next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next()
+})
+```
+
+После него описываем функции таким образом:
+
+```javascript
+app.post("/userRegistration", async (req, res) => {
+    try {
+        const result = await contract.submitTransaction("userRegistration", req.body.login, req.body.password);
+        res.send(result.toString());
+    } catch (error) {
+        res.status(500).send(error)
+    }
+})
+```
+> submitTransaction - для функций, которые изменяют блокчейн, evaluateTransaction - функции для чтения
+
+И далее опять заученный код:
+
+```javascript
+async function main() {
+    try{
+        const ccp = buildCCPOrg2();
+        const caClient = buildCAClient(require('fabric-ca-client'),ccp,'ca.org2.example.com');
+        const wallet = await buildWallet(Wallets,walletPath);
+
+        await enrollAdmin(caClient,wallet,mspOrg2)
+        await registerAndEnrollUser(caClient,wallet,mspOrg2,org2UserID,'org2.department1');
+
+        const gateway = new Gateway()
+        const gatewayOpt = {
+            identity: org2UserID,
+            wallet,
+            discovery: {
+                enabled: true,
+                asLocalhost: true,
+            },
+        };
+
+        await gateway.connect(ccp,gatewayOpt)
+
+        const network = await gateway.getNetwork(channelName);
+        contract = network.getContract(chaincodeName);
+
+    } catch (e) {
+        console.error(`--------------FAILED TO RUN APPLICATIONS: ${e}`)
+    }
+    finally {
+        console.log(`call contract init....`)
+        try {
+            const result = await contract.evaluateTransaction('init')
+            console.log(result.toString())
+        } catch (e) {
+            console.log(`error + ${e}`);
+        }
+    }
+}
+
+main()
+
+app.listen(3002, () => console.log('Listening on port 3002'))
+```
 
 ## Проблемки
 

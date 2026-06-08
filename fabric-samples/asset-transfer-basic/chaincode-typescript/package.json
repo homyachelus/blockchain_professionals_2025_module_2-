@@ -11,7 +11,7 @@
     "lint": "eslint src",
     "pretest": "npm run lint",
     "test": "",
-    "start": "set -x && fabric-chaincode-node start",
+    "start": "fabric-chaincode-node start",
     "build": "tsc",
     "build:watch": "tsc -w",
     "prepublishOnly": "npm run build",

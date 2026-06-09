@@ -24,10 +24,10 @@ app.use((req,res,next) => {
 
 app.post("/userRegistration", async (req, res) => {
     try {
-        const result = await contract.submitTransaction("userRegistration", req.body.login, req.body.password);
+        const result = await contract.submitTransaction("userRegistration", req.body.login, req.body.password, req.body.role, req.body.fio, req.body.driverType);
         res.send(result.toString());
     } catch (error) {
-        res.status(500).send(error)
+        res.status(500).send(error.toString())
     }
 })
 
@@ -103,9 +103,11 @@ app.post("/autoExtensionOfRights", async (req, res) => {
     }
 })
 
+
+
 app.post("/getCertificates", async (req, res) => {
     try {
-        const result = await contract.evaluateTransaction("getCertificates", req.body.login, req.body.password);
+        const result = await contract.evaluateTransaction("getCertificates", req.body.login);
         res.send(result.toString());
     } catch (error) {
         res.status(500).send(error)
@@ -123,7 +125,7 @@ app.post("/getBank", async (req, res) => {
 
 app.post("/getUser", async (req, res) => {
     try {
-        const result = await contract.evaluateTransaction("getUser", req.body.login, req.body.password);
+        const result = await contract.evaluateTransaction("getUser", req.body.login);
         res.send(result.toString());
     } catch (error) {
         res.status(500).send(error)
@@ -188,7 +190,7 @@ async function main() {
     finally {
         console.log(`call contract init....`)
         try {
-            const result = await contract.evaluateTransaction('init')
+            const result = await contract.submitTransaction('init')
             console.log(result.toString())
         } catch (e) {
             console.log(`error + ${e}`);

@@ -106,7 +106,7 @@ export class SafeRoadTraffic extends Contract{
     public async userRegistration(ctx: Context, login:string, password:string, role: "driver" | "dps", fio: string, driverType: driver) {
         const findLogin = await ctx.stub.getState("User-"+login);
 
-        if (findLogin) {
+        if (findLogin && findLogin.length > 0) {
             throw new Error("Такой логин существует")
         } else {
             const newUser: User = {
@@ -114,6 +114,8 @@ export class SafeRoadTraffic extends Contract{
             }
             await ctx.stub.putState("User-"+login, Buffer.from(JSON.stringify(newUser)));
             await ctx.stub.putState("User_LOGIN-"+login, Buffer.from(JSON.stringify(newUser.login)));
+
+            return JSON.stringify(newUser);
         }
     }
 

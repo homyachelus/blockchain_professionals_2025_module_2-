@@ -15,6 +15,8 @@ sudo service docker start
 
 Чтобы понять что докер запущен нужно написать `docker ps` просто достаточно того что он не выдал ошибку "Cannot connect to the Docker daemon", все остальное - запущен
 
+Для остановки докера: `docker stop $(docker ps -q)`
+
 ### Hyperledger-Fabric
 
 Установка hyperledger-fabric осуществляется через команды:
@@ -411,6 +413,30 @@ main()
 
 app.listen(3002, () => console.log('Listening on port 3002'))
 ```
+
+## Фронтенд
+
+В папке src создаем папку api, где создаем api.ts и описываем там функции для импользования во фронте:
+
+```typescript
+export const getUser = async() => {
+    const raw = await fetch("https:/localhost:3002/getUser", {
+        method: "POST",
+        headers: {"Content-type": "application/json"},
+        body:JSON.stringify({})
+    })
+    return await raw.json()
+}
+```
+
+## Автозапуск
+
+Автозапуск находится в корне проекта в файле start.sh
+
+При работе на реалном убунту используем:
+`gnome-terminal --bash -c "cd ../../frontend; sleep 15"`
+
+Я писала на wsl и вручную открывала терминал где запускала npm run dev
 
 ## Проблемки
 

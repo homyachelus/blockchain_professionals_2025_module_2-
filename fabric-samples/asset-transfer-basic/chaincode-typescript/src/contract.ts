@@ -103,20 +103,22 @@ export class SafeRoadTraffic extends Contract{
     }
 
     //регистрация пользователя
-    public async userRegistration(ctx: Context, login:string, password:string, role: "driver" | "dps", fio: string, driverType: driver) {
-        const findLogin = await ctx.stub.getState("User-"+login);
+    public async userRegistration(ctx: Context, login:string, password:string, role: "driver" | "dps", fio: string, driverType: string) {
+        //const findLogin = await ctx.stub.getState("User-"+login);
 
-        if (findLogin && findLogin.length > 0) {
-            throw new Error("Такой логин существует")
-        } else {
+        const driverType2: driver = JSON.parse(driverType)
+
+        // if (findLogin && findLogin.length > 0) {
+        //     throw new Error("Такой логин существует")
+        // } else {
             const newUser: User = {
-                login, password, role, fio, driverType
+                login, password, role, fio: fio, driverType: driverType2
             }
             await ctx.stub.putState("User-"+login, Buffer.from(JSON.stringify(newUser)));
             await ctx.stub.putState("User_LOGIN-"+login, Buffer.from(JSON.stringify(newUser.login)));
 
             return JSON.stringify(newUser);
-        }
+        //}
     }
 
 
@@ -134,6 +136,8 @@ export class SafeRoadTraffic extends Contract{
         }
 
         await ctx.stub.putState("request_Add_Certif-"+request.id, Buffer.from(JSON.stringify(request)))
+
+        return JSON.stringify(request);
     }
 
     //регистрция транспорта
@@ -147,6 +151,8 @@ export class SafeRoadTraffic extends Contract{
         }
 
         await ctx.stub.putState("request_Reg_Vechile-"+login, Buffer.from(JSON.stringify(request)))
+
+        return JSON.stringify(request);
     }
 
     //продление срока водит удостовер
@@ -156,6 +162,8 @@ export class SafeRoadTraffic extends Contract{
         }
 
         await ctx.stub.putState("request_Exten-"+login, Buffer.from(JSON.stringify(request)))
+
+        return JSON.stringify(request);
     }
 
     //оплата штрафа
@@ -163,8 +171,15 @@ export class SafeRoadTraffic extends Contract{
         const user: User = JSON.parse((await ctx.stub.getState("User-"+login)).toString());
         const bank: User = JSON.parse((await ctx.stub.getState("Bank-")).toString());
 
-        const startCounting = user.driverType.fine.startCounting as unknown as number;
-        const payDay = ctx.stub.getDateTimestamp().getSeconds();
+        // const startCounting = user.driverType.fine.startCounting as unknown as number;
+        // const payDay = ctx.stub.getDateTimestamp().getSeconds();
+
+        if (!user.driverType.fine.numberOfUnpaidFines || user.driverType.fine.numberOfUnpaidFines == 0) {
+            throw new Error("У вас нет штрафов")
+        }
+
+        const startCounting = new Date(user.driverType.fine.startCounting as any).getTime() / 1000;
+        const payDay = ctx.stub.getDateTimestamp().getTime() / 1000;
 
         const difference = payDay - startCounting;
 
@@ -181,8 +196,12 @@ export class SafeRoadTraffic extends Contract{
         user.driverType.currentBalance -= price;
         user.driverType.fine.numberOfUnpaidFines = 0;
 
-        await ctx.stub.putState("User-"+user.login, Buffer.from(JSON.stringify(user)));
+        await ctx.stub.putState("User-"+login, Buffer.from(JSON.stringify(user)));
         await ctx.stub.putState("Bank-", Buffer.from(JSON.stringify(bank)));
+
+
+
+        return JSON.stringify(user);
     }
 
 
@@ -319,27 +338,59 @@ export class SafeRoadTraffic extends Contract{
         return allResults;
     }
 
+    public async getAllUsers(ctx: Context): Promise<string> {
+        const users = await this.queryAll<User>(ctx, "User-");
+        return JSON.stringify(users);
+    }
+
     public async getCertificates(ctx:Context, num: string) {
-        return (await this.queryAll(ctx, "certificate"+num+"-"))[0];
+        const bytes = await ctx.stub.getState("certificate" + num + "-");
+        if (!bytes || bytes.length === 0) {
+            throw new Error(`Сертификат №${num} не найден`);
+        }
+        return bytes.toString();
     }
 
     public async getBank(ctx: Context) {
-        return (await this.queryAll(ctx, "Bank-"))[0];
+        const bytes = await ctx.stub.getState("Bank-");
+        if (!bytes || bytes.length === 0) {
+            throw new Error("Данные банка не инициализированы");
+        }
+        return bytes.toString();
     }
 
     public async getUser(ctx: Context, login: string) {
-        return (await this.queryAll(ctx, "User-"+login))[0]
+        const userBytes = await ctx.stub.getState("User-" + login);
+        if (!userBytes || userBytes.length === 0) {
+            throw new Error(`Пользователь ${login} не найден`);
+        }
+        return userBytes.toString();
     }
 
-    public async getRequestCertificate(ctx: Context) {
-        return (await this.queryAll(ctx, "request_Add_Certif-"))[0]
+    //запрос на сертификат
+    public async getRequestCertificate(ctx: Context, num: string) {
+        const bytes = await ctx.stub.getState("request_Add_Certif-" + num);
+        if (!bytes || bytes.length === 0) {
+            throw new Error(`Запрос на сертификат №${num} не найден`);
+        }
+        return bytes.toString();
     }
 
-    public async getRequestVehicle(ctx: Context) {
-        return (await this.queryAll(ctx, "request_Reg_Vechile-"))[0]
+    //запрос на трнаспорт
+    public async getRequestVehicle(ctx: Context, login: string) {
+        const bytes = await ctx.stub.getState("request_Reg_Vechile-" + login);
+        if (!bytes || bytes.length === 0) {
+            throw new Error(`Запрос на транспорт для пользователя ${login} не найден`);
+        }
+        return bytes.toString();
     }
 
-    public async getRequestCertificatePeriod(ctx: Context) {
-        return (await this.queryAll(ctx, "request_Exten-"))[0]
+    //запрос на срок
+    public async getRequestCertificatePeriod(ctx: Context, login: string) {
+        const bytes = await ctx.stub.getState("request_Exten-" + login);
+        if (!bytes || bytes.length === 0) {
+            throw new Error(`Запрос на продление прав для пользователя ${login} не найден`);
+        }
+        return bytes.toString();
     }
 }

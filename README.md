@@ -357,7 +357,7 @@ app.use((req,res,next) => {
 После него описываем функции таким образом:
 
 ```javascript
-app.post("/userRegistration", async (req, res) => {
+app.post("/userRegistration", registerAndEnrollUser, async (req, res) => {
     try {
         const result = await contract.submitTransaction("userRegistration", req.body.login, req.body.password);
         res.send(result.toString());
@@ -429,14 +429,33 @@ export const getUser = async() => {
 }
 ```
 
+Если ошибка типа "функция ничего не возвращает":
+Failed to execute 'json' on 'Response': Unexpected end of JSON input
+
+То нужно в конце нее в контракте добавить:
+return JSON.stringify(request);
+
+Обычно это встречается в get-функциях
+
+Если возникают ошибки в консоли типа ошибки 500, то смотри в терминал бекэнда, там написана причина 
+
 ## Автозапуск
 
-Автозапуск находится в корне проекта в файле start.sh
+Автозапуск находится в корне проекта в файле start.sh и stop.sh
 
 При работе на реалном убунту используем:
 `gnome-terminal --bash -c "cd ../../frontend; sleep 15"`
 
 Я писала на wsl и вручную открывала терминал где запускала npm run dev
+
+Для запуска нужно сначала раздать права файлам если будут подобные ошибки(один раз за все время) и потом запускать:
+```shell
+chmod +x ./stop.sh
+chmod +x ./start.sh
+
+./stop.sh
+./start.sh
+```
 
 ## Проблемки
 

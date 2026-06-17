@@ -40,7 +40,7 @@ app.post("/userRegistration", registerAndEnrollUser, async (req, res) => {
 app.post("/addCertificate", registerAndEnrollUser, async (req, res) => {
     try {
         console.log("start add")
-        const result = await contract.submitTransaction("addCertificate", req.body.num, req.body.certificatePeriod, req.body.category);
+        const result = await contract.submitTransaction("addCertificate",req.body.login, req.body.num, req.body.certificatePeriod, req.body.category);
         res.send(result.toString());
         console.log("stop add")
     } catch (error) {
@@ -92,52 +92,84 @@ app.post("/extensionOfRights", registerAndEnrollUser, async (req, res) => {
     }
 })
 
-
-
-
-
-
-app.post("/issuanceFine", async (req, res) => {
+app.post("/issuanceFine", registerAndEnrollUser, async (req, res) => {
     try {
-        const result = await contract.submitTransaction("issuanceFine", req.body.login, req.body.password);
+        console.log("start issue")
+        const result = await contract.submitTransaction("issuanceFine", req.body.num);
         res.send(result.toString());
+        console.log("stop issue")
     } catch (error) {
+        console.log("start error")
+        console.log(error)
         res.status(500).send(error)
-    }
-})
-
-app.post("/autoCertificateVerification", async (req, res) => {
-    try {
-        const result = await contract.submitTransaction("autoCertificateVerification", req.body.login, req.body.password);
-        res.send(result.toString());
-    } catch (error) {
-        res.status(500).send(error)
-    }
-})
-
-app.post("/autoRegVehicle", async (req, res) => {
-    try {
-        const result = await contract.submitTransaction("autoRegVehicle", req.body.login, req.body.password);
-        res.send(result.toString());
-    } catch (error) {
-        res.status(500).send(error)
-    }
-})
-
-app.post("/autoExtensionOfRights", async (req, res) => {
-    try {
-        const result = await contract.submitTransaction("autoExtensionOfRights", req.body.login, req.body.password);
-        res.send(result.toString());
-    } catch (error) {
-        res.status(500).send(error)
+        console.log("stop error")
     }
 })
 
 
 
-app.post("/getCertificates", async (req, res) => {
+
+
+
+app.post("/autoCertificateVerification", registerAndEnrollUser, async (req, res) => {
     try {
-        const result = await contract.evaluateTransaction("getCertificates", req.body.login);
+        console.log("start autoCertific")
+        const result = await contract.submitTransaction("autoCertificateVerification", req.body.num, req.body.userLogin);
+        res.send(result.toString());
+        console.log("stop autoCertific")
+    } catch (error) {
+        console.log("start error")
+        console.log(error)
+        res.status(500).send(error.message)
+        console.log("stop error")
+    }
+})
+
+app.post("/autoRegVehicle", registerAndEnrollUser, async (req, res) => {
+    try {
+        console.log("start veh")
+        const result = await contract.submitTransaction("autoRegVehicle", req.body.userLogin);
+        res.send(result.toString());
+        console.log("stop veh")
+    } catch (error) {
+        console.log("start error")
+        console.log(error)
+        res.status(500).send(error)
+        console.log("stop error")
+    }
+})
+
+app.post("/autoExtensionOfRights", registerAndEnrollUser, async (req, res) => {
+    try {
+        console.log("start exten")
+        const result = await contract.submitTransaction("autoExtensionOfRights", req.body.userLogin);
+        res.send(result.toString());
+        console.log("stop exten")
+    } catch (error) {
+        console.log("start error")
+        console.log(error)
+        res.status(500).send(error)
+        console.log("stop error")
+    }
+})
+
+app.post("/addCategory", registerAndEnrollUser, async (req, res) => {
+    try {
+        console.log("start exten")
+        const result = await contract.submitTransaction("addCategory", req.body.login, req.body.category);
+        res.send(result.toString());
+        console.log("stop exten")
+    } catch (error) {
+        console.log("start error")
+        console.log(error)
+        res.status(500).send(error)
+        console.log("stop error")
+    }
+})
+
+app.post("/getCertificates", registerAndEnrollUser, async (req, res) => {
+    try {
+        const result = await contract.evaluateTransaction("getCertificates", req.body.num);
         if (!result || result.length === 0) {
             res.send(JSON.stringify({click: 0}));
         } else {
@@ -148,9 +180,9 @@ app.post("/getCertificates", async (req, res) => {
     }
 })
 
-app.post("/getBank", async (req, res) => {
+app.post("/getBank", registerAndEnrollUser, async (req, res) => {
     try {
-        const result = await contract.evaluateTransaction("getBank", req.body.login, req.body.password);
+        const result = await contract.evaluateTransaction("getBank");
         if (!result || result.length === 0) {
             res.send(JSON.stringify({click: 0}));
         } else {
@@ -191,6 +223,66 @@ app.post("/getAllUsers", registerAndEnrollUser, async (req, res) => {
         console.log("stop error")
     }
 })
+
+app.post("/getAllCertificateRequests", registerAndEnrollUser, async (req, res) => {
+    try {
+        console.log("start get")
+        const result = await contract.evaluateTransaction("getAllCertificateRequests");
+        res.send(result.toString());
+        console.log("stop get")
+    } catch (error) {
+        console.log("start error")
+        console.log(error)
+        res.status(500).send([]);
+        console.log("stop error")
+    }
+});
+
+app.post("/getAllRequestVehicle", registerAndEnrollUser, async (req, res) => {
+    try {
+        console.log("start get")
+        const result = await contract.evaluateTransaction("getAllRequestVehicle");
+        res.send(result.toString());
+        console.log("stop get")
+    } catch (error) {
+        console.log("start error")
+        console.log(error)
+        res.status(500).send([]);
+        console.log("stop error")
+    }
+});
+
+app.post("/getAllRequestCertificatePeriod", registerAndEnrollUser, async (req, res) => {
+    try {
+        console.log("start get")
+        const result = await contract.evaluateTransaction("getAllRequestCertificatePeriod");
+        if (!result || result.length === 0) {
+            res.send(JSON.stringify({click: 0}));
+        } else {
+            res.send(result.toString());
+        }
+        console.log("stop get")
+    } catch (error) {
+        console.log("start error")
+        console.log(error)
+        res.status(500).send([]);
+        console.log("stop error")
+    }
+});
+
+app.post("/changeCategory", registerAndEnrollUser, async (req, res) => {
+    try {
+        console.log("start get")
+        const result = await contract.submitTransaction("changeCategory", req.body.login, req.body.category);
+        res.send(result.toString());
+        console.log("stop get")
+    } catch (error) {
+        console.log("start error")
+        console.log(error)
+        res.status(500).send([]);
+        console.log("stop error")
+    }
+});
 
 app.post("/getRequestCertificate", registerAndEnrollUser, async (req, res) => {
     try {

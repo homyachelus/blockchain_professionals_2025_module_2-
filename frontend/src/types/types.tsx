@@ -1,7 +1,7 @@
 export type certificate = {             //водит удостоверение
     num: string;
     certificatePeriod: Date;
-    category: "A" | "B" | "C";
+    category: string[];
 }
 
 export type vehicle = {

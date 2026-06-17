@@ -1,5 +1,5 @@
 import {useNavigate} from "react-router";
-import {useMyContext} from "../redux/context.tsx";
+import {useMyContext} from "../../redux/context.tsx";
 
 const PayFine = () => {
 
@@ -29,7 +29,7 @@ const PayFine = () => {
 
                     <button className="counter" onClick={fun}>оплатить все штрафы</button><br/><br/>
 
-                    <button className="counter" onClick={() => navigate("/mainpage")}>выйти</button>
+                    <button className="counter" onClick={() => {navigate("/mainpage")}}>выйти</button>
                 </div>
             )}
         </div>

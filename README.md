@@ -439,6 +439,30 @@ return JSON.stringify(request);
 
 Если возникают ошибки в консоли типа ошибки 500, то смотри в терминал бекэнда, там написана причина 
 
+Перехват ошибки во фронте в блоке try {..} catch(e) {..}:
+```typescript
+const cleanMessage = e.message.includes("message=")
+    ? e.message.split("message=")[1] // [0]-до "message=" [1]-после "message="
+    : e.message;
+
+alert(cleanMessage);
+```
+
+Для обновления LocalStorage:
+```typescript
+const [user, setUser] = useState<User | undefined>(
+    () => {const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            try {
+                return JSON.parse(savedUser);
+            } catch (e) {
+                return undefined;
+            }
+        }
+        return undefined;
+    });
+```
+
 ## Автозапуск
 
 Автозапуск находится в корне проекта в файле start.sh и stop.sh

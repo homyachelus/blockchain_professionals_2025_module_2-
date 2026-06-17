@@ -1,8 +1,8 @@
 import "../css/App.css";
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import {useMyContext} from "../redux/context.tsx";
 import {useNavigate} from "react-router";
-import {getAllUsers, getBank, getUser} from "../api/api.ts";
+import {getBank, getUser} from "../api/api.ts";
 import type {User} from "../types/types.tsx";
 
 const registerPage = () => {
@@ -14,11 +14,9 @@ const registerPage = () => {
 
     const [tab, setTab] = useState<"register" | "login">("register")
 
-    const {stage, setStage, userRegistration_, setLoading, setUser} = useMyContext()
+    const {stage, setStage, userRegistration_, setLoading, setUser, allUsers} = useMyContext()
 
     const navigate = useNavigate();
-
-    const [allUsers, setAllUsers] = useState<User[]>([]);
 
     const fun = async() => {
         await userRegistration_(login, pass, role, fio);
@@ -28,19 +26,27 @@ const registerPage = () => {
     const handleLogin = async (selectedUser: User) => {
         setLoading(true);
         try {
-            const userDetails = await getUser(selectedUser.login);
-            setUser(userDetails);
+            if (role == "bank") {
+                console.log("start bank")
+                const us = await getBank()
+                setUser(us)
+                localStorage.setItem('currentUser', JSON.stringify(us));
+            } else {
+                console.log("start user")
+                const us = await getUser(selectedUser.login)
+                setUser(us)
+                localStorage.setItem('currentUser', JSON.stringify(us));
+            }
+
+            console.log("start navi")
             navigate("/mainpage");
         } catch (e) {
-            alert("Ошибка входа");
+            console.log("error")
+            console.log(e);
         } finally {
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        getAllUsers().then(data => setAllUsers(data))
-    }, []);
 
     return (
         <div>
@@ -68,7 +74,7 @@ const registerPage = () => {
                         <input value={login} onChange={(e) => setLogin(e.target.value)} className="input" placeholder="логин"></input> <br/>
                         <input value={pass} onChange={(e) => setPass(e.target.value)} className="input" placeholder="пароль"></input> <br/>
                         <input value={fio} onChange={(e) => setFio(e.target.value)} className="input" placeholder="ваше фио"></input> <br/>
-                        <input value={stage} onChange={(e) => setStage(Number(e.target.value))} className="input" ></input> <br/>
+                        <input value={stage} onChange={(e) => setStage(Number(e.target.value))} className="input" placeholder="ваш стаж"></input> <br/>
                     </div>
 
                     <br/><br/>
@@ -86,11 +92,11 @@ const registerPage = () => {
 
                     <div>
                         {role === "bank" ? (
-                            <button className="counter" onClick={async () => setUser(await getBank())}>войти как Банк</button>
+                            <button className="counter" onClick={async () => handleLogin(await getBank())}>войти как Банк</button>
                         ) : (
                             allUsers.filter(u => u.role === role).map((u) => (
                                 <div key={u.login} className="counter" onClick={() => handleLogin(u)}>
-                                    <p>Войти как<span><br/><strong>{u.fio}</strong><br/></span>Логин: {u.login}</p>
+                                    <p>войти как<span><br/><strong>{u.fio}</strong><br/></span>Логин: {u.login}</p>
                                 </div>
                             ))
                         )}

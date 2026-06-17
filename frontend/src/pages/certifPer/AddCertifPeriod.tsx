@@ -1,6 +1,6 @@
 import {useNavigate} from "react-router";
-import "../css/App.css";
-import {useMyContext} from "../redux/context.tsx";
+import "../../css/App.css";
+import {useMyContext} from "../../redux/context.tsx";
 import {useState} from "react";
 
 const AddCertifPeriod = () => {
@@ -27,11 +27,12 @@ const AddCertifPeriod = () => {
         <div>
             <h1>Продление срока лицензии</h1>
 
+            <h3>на сколько лет</h3>
             <input className="input" value={selectedPeriod} onChange={(e) => {setSelectedPeriod(Number(e.target.value))}}></input><br/>
             <button className="counter" onClick={fun}>подать заявку</button> <br/><br/>
 
 
-            <button className="counter" onClick={() => navigate("/mainpage")}>выйти</button>
+            <button className="counter" onClick={() => {navigate("/mainpage")}}>выйти</button>
         </div>
     )
 }
